@@ -34,9 +34,6 @@ vector<int> dijkstra(const int s, const vector<vector<edge>> &G) {
     return dist;
 }
 
-long long calc(const vector<set<int>> &S) {
-    
-}
 
 int main() {
     int N, M, D, K;
@@ -55,6 +52,11 @@ int main() {
         G[v].push_back(edge(u, w));
     }
 
+    vector dist(N, vector<int>());
+    for (int i = 0; i < N; ++i) {
+        dist[i] = dijkstra(i, G);
+    }
+
 /*
     vector<int> X(N), Y(N);
     for (int i = 0; i < N; ++i) {
@@ -62,44 +64,66 @@ int main() {
     }
 */
 
-    vector S(D, set<int>());
+    auto calc = [&](const vector<set<int>> &S) -> long long {
+        long long res = 0;
+        for (int d = 0; d < D; ++d) {
+            vector nG(N, vector<edge>());
+            for (int i = 0; i < M; ++i) {
+                if (S[d].count(i)) continue;
+                int u = U[i], v = V[i], w = W[i];
+                G[u].push_back(edge(v, w));
+                G[v].push_back(edge(u, w));
+            }
+
+            for (int i = 0; i < N; ++i) {
+                auto ndist = dijkstra(i, nG);
+                
+                for (int j = i + 1; j < N; ++j) {
+                    res += ndist[j] - dist[i][j];
+                }
+            }
+        }
+    };
+
+    vector best(D, set<int>());
     for (int i = 0; i < M; ++i) {
-        S[i % D].insert(i);
+        best[i % D].insert(i);
     }
 
-    vector dist(N, vector<int>());
-    for (int i = 0; i < N; ++i) {
-        dist[i] = dijkstra(i, G);
-    }
+    long long best_min = calc(best);
 
-    long long res = 0;
-    for (int d = 0; d < D; ++d) {
-        vector nG(N, vector<edge>());
+    auto base_ms = 0;
+    auto tic = [&base_ms]() { base_ms = clock(); };
+    auto toc = [&base_ms]() { return clock() - base_ms; };
+
+    tic();
+
+    while (1.0 * toc() / CLOCKS_PER_SEC < 1.0) {
+        cerr << toc() << endl;
+
+        vector S(D, set<int>());
         for (int i = 0; i < M; ++i) {
-            if (S[d].count(i)) continue;
-            int u = U[i], v = V[i], w = W[i];
-            G[u].push_back(edge(v, w));
-            G[v].push_back(edge(u, w));
+            int d = rand() % D;
+            while (S[d].size() >= K) d = rand() % D;
+            S[d].insert(i);
         }
 
-        for (int i = 0; i < N; ++i) {
-            auto ndist = dijkstra(i, nG);
-            
-            for (int j = i + 1; j < N; ++j) {
-                res += ndist[j] - dist[i][j];
-            }
+        long long res = calc(S);
+        if (res < best_min) {
+            best_min = res;
+            best = S;
         }
     }
 
     vector<int> R(M);
     for (int d = 0; d < D; ++d) {
-        for (auto &i : S[d]) {
+        for (auto &i : best[d]) {
             R[i] = d;
         }
     }
     for (auto &r : R) cout << r + 1 << " ";
 
-    cerr << "score = " << res << endl;
+    cerr << "BEST_SCORE = " << best_min << endl;
 
     return 0;
 }
