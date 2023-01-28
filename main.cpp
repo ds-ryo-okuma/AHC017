@@ -20,7 +20,7 @@ int main() {
 
     int day = 1, count = 0;
     for (auto &r : R) {
-        if (count == K) {
+        if (count == (M + D - 1) / D) {
             day++;
             count = 0;
         }
