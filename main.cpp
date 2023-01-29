@@ -38,7 +38,7 @@ vector<int> dijkstra(const int s, const vector<vector<edge>> &G) {
 void output (int M, const vector<set<int>> &S) {
     vector<int> R(M);
     for (int d = 0; d < (int)S.size(); ++d) {
-        for (auto &i : best[d]) {
+        for (auto &i : S[d]) {
             R[i] = d;
         }
     }
