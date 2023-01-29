@@ -7,12 +7,32 @@ using namespace std;
 const int INF = 1'000'000'000;
 const double CALC_TIME = 5.0;
 
+vector<int> U, V, W;
+
 struct edge {
     int to, cost;
     edge(int to, int cost) : to(to), cost(cost) {}
 };
 
-vector<int> dijkstra(const int s, const vector<vector<edge>> &G) {
+using graph = vector<set<int>>;
+graph& operator +=(graph &self, const set<int> &S) {
+    for (auto i : S) {
+        int u = U[i], v = V[i];
+        self[u].insert(i);
+        self[v].insert(i);
+    }
+    return self;
+};
+graph& operator -=(graph &self, const set<int> &S) {
+    for (auto i : S) {
+        int u = U[i], v = V[i];
+        self[u].erase(i);
+        self[v].erase(i);
+    }
+    return self;
+};
+
+vector<int> dijkstra(const int s, const graph &G) {
     int N = G.size();
 
     vector dist(N, INF);
@@ -24,7 +44,9 @@ vector<int> dijkstra(const int s, const vector<vector<edge>> &G) {
     while (q.size()) {
         auto [d, v] = q.top(); q.pop();
         if (dist[v] < d) continue;
-        for (auto [to, cost] : G[v]) {
+        for (auto i : G[v]) {
+            int to = U[i] == v ? V[i] : U[i];
+            int cost = W[i];
             if (dist[v] + cost < dist[to]) {
                 dist[to] = dist[v] + cost;
                 q.push({dist[to], to});
@@ -51,7 +73,7 @@ int main() {
     int N, M, D, K;
     cin >> N >> M >> D >> K;
 
-    vector<int> U(M), V(M), W(M);
+    U.resize(M), V.resize(M), W.resize(M);
     for (int i = 0; i < M; ++i) {
         cin >> U[i] >> V[i] >> W[i];
         --U[i], --V[i];
@@ -61,11 +83,11 @@ int main() {
     auto tic = [&base_ms]() { base_ms = clock(); };
     auto toc = [&base_ms]() { return clock() - base_ms; };
 
-    vector G(N, vector<edge>());
+    graph G(N);
     for (int i = 0; i < M; ++i) {
         int u = U[i], v = V[i], w = W[i];
-        G[u].push_back(edge(v, w));
-        G[v].push_back(edge(u, w));
+        G[u].insert(i);
+        G[v].insert(i);
     }
 
     vector dist(N, vector<int>());
@@ -84,20 +106,16 @@ int main() {
         long long res = 0;
 
         for (int d = 0; d < (int)S.size(); ++d) {
-            vector nG(N, vector<edge>());
-            for (int i = 0; i < M; ++i) {
-                if (S[d].count(i)) continue;
-                int u = U[i], v = V[i], w = W[i];
-                nG[u].push_back(edge(v, w));
-                nG[v].push_back(edge(u, w));
-            }
+            G -= S[d];
 
             int s = rand() % N;
-            auto ndist = dijkstra(s, nG);
+            auto ndist = dijkstra(s, G);
                 
             for (int g = 0; g < N; ++g) {
                 res += ndist[g] - dist[s][g];
             }
+
+            G += S[d];
         }
 
         return res;
