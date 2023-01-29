@@ -110,6 +110,8 @@ int main() {
 
     long long best_min = calc(best);
 
+    int loop_count = 0;
+
     tic();
     while (toc() < CALC_TIME * CLOCKS_PER_SEC) {
         vector S(D, set<int>());
@@ -124,9 +126,12 @@ int main() {
             best_min = res;
             best = S;
         }
+
+        ++loop_count;
     }
 
     output(M, best);
+    cerr << "loop:" << loop_count << endl;
 
     return 0;
 }
