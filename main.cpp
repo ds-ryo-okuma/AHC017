@@ -5,6 +5,7 @@
 using namespace std;
 
 const int INF = 1'000'000'000;
+const double CALC_TIME = 5.0;
 
 struct edge {
     int to, cost;
@@ -68,11 +69,9 @@ int main() {
     }
 
     vector dist(N, vector<int>());
-    tic();
     for (int i = 0; i < N; ++i) {
         dist[i] = dijkstra(i, G);
     }
-    cerr << (double)toc() / CLOCKS_PER_SEC << endl;
 
 /*
     vector<int> X(N), Y(N);
@@ -82,10 +81,9 @@ int main() {
 */
 
     auto calc = [&](const vector<set<int>> &S) -> long long {
-        auto start = clock();
-
         long long res = 0;
-        for (int d = 0; d < D; ++d) {
+
+        for (int d = 0; d < (int)S.size(); ++d) {
             vector nG(N, vector<edge>());
             for (int i = 0; i < M; ++i) {
                 if (S[d].count(i)) continue;
@@ -94,15 +92,13 @@ int main() {
                 nG[v].push_back(edge(u, w));
             }
 
-            int i = rand() % N;
-            auto ndist = dijkstra(i, nG);
+            int s = rand() % N;
+            auto ndist = dijkstra(s, nG);
                 
-            for (int j = 0; j < N; ++j) {
-                res += ndist[j] - dist[i][j];
+            for (int g = 0; g < N; ++g) {
+                res += ndist[g] - dist[s][g];
             }
         }
-
-        cerr << "calc : " << (clock() - start) / CLOCKS_PER_SEC;
 
         return res;
     };
@@ -115,10 +111,7 @@ int main() {
     long long best_min = calc(best);
 
     tic();
-
-    while (toc() < 5.0 * CLOCKS_PER_SEC) {
-        cerr << toc() << endl;
-
+    while (toc() < CALC_TIME * CLOCKS_PER_SEC) {
         vector S(D, set<int>());
         for (int i = 0; i < M; ++i) {
             int d = rand() % D;
@@ -134,8 +127,6 @@ int main() {
     }
 
     output(M, best);
-
-    cerr << "BEST_SCORE = " << best_min << endl;
 
     return 0;
 }
