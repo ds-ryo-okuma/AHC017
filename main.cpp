@@ -131,7 +131,7 @@ int main() {
     }
 
     output(M, best);
-    cerr << "loop:" << loop_count << endl;
+    cerr << "loop = " << loop_count << endl;
 
     return 0;
 }
