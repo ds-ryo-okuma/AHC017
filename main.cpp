@@ -5,7 +5,7 @@
 using namespace std;
 
 const int INF = 1'000'000'000;
-const double CALC_TIME = 5.0;
+const double CALC_TIME = 2.0;
 
 vector<int> U, V, W;
 
@@ -55,6 +55,33 @@ vector<int> dijkstra(const int s, const graph &G) {
     }
 
     return dist;
+}
+
+
+vector<set<int>> neighbor(int K, const vector<set<int>> &S) {
+    int D = S.size();
+
+    vector res(S);
+
+    int i = rand() % D, j = rand() % (D - 1);
+    if (i <= j) j++;
+
+    // S_i と S_j を作り直す
+    set<int> nS[2];
+    for (auto s : res[i]) {
+        int x = rand() % 2;
+        if (K <= nS[x].size()) x = 1 - x;
+        nS[x].insert(s);
+    }
+    for (auto s : res[j]) {
+        int x = rand() % 2;
+        if (K <= nS[x].size()) x = 1 - x;
+        nS[x].insert(s);
+    }
+
+    res[i] = nS[0], res[j] = nS[1];
+
+    return res;
 }
 
 
@@ -146,6 +173,17 @@ int main() {
         }
 
         ++loop_count;
+    }
+
+    tic();
+    while (toc() < 3.0 * CLOCKS_PER_SEC) {
+        vector S = neighbor(K, best);
+
+        long long res = calc(S);
+        if (res < best_min) {
+            best_min = res;
+            best = S;
+        }
     }
 
     output(M, best);
