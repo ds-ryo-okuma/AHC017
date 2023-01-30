@@ -155,7 +155,7 @@ int main() {
 
     long long best_min = calc(best);
 
-    int loop_count = 0;
+    int initial_count = 0;
 
     tic();
     while (toc() < CALC_TIME * CLOCKS_PER_SEC) {
@@ -172,8 +172,10 @@ int main() {
             best = S;
         }
 
-        ++loop_count;
+        ++initial_count;
     }
+
+    int loop_count = 0;
 
     tic();
     while (toc() < 3.0 * CLOCKS_PER_SEC) {
@@ -184,10 +186,13 @@ int main() {
             best_min = res;
             best = S;
         }
+
+        ++loop_count;
     }
 
     output(M, best);
-    cerr << "loop = " << loop_count << endl;
+    cerr << "INITIAL_COUNT = " << initial_count << endl;
+    cerr << "LOOP_COUNT = " << loop_count << endl;
 
     return 0;
 }
