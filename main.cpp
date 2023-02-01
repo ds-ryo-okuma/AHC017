@@ -6,7 +6,8 @@
 using namespace std;
 
 const int INF = 1'000'000'000;
-const double CALC_TIME = 2.0;
+const double INITIAL_TIME = 2.0;
+const double CALC_TIME = 3.5;
 
 vector<int> U, V, W;
 
@@ -56,6 +57,17 @@ vector<int> dijkstra(const int s, const graph &G) {
     }
 
     return dist;
+}
+
+
+vector<set<int>> make_random(int D, int M, int K) {
+    vector res(D, set<int>());
+    for (int i = 0; i < M; ++i) {
+        int d = rand() % D;
+        while (res[d].size() >= K) d = rand() % D;
+        res[d].insert(i);
+    }
+    return res;
 }
 
 
@@ -167,13 +179,8 @@ int main() {
     int initial_count = 0;
 
     tic();
-    while (toc() < CALC_TIME * CLOCKS_PER_SEC) {
-        S = vector(D, set<int>());
-        for (int i = 0; i < M; ++i) {
-            int d = rand() % D;
-            while (S[d].size() >= K) d = rand() % D;
-            S[d].insert(i);
-        }
+    while (toc() < INITIAL_TIME * CLOCKS_PER_SEC) {
+        S = make_random(D, M, K);
 
         vector<long long> res = calc(best, score, S);
         if (accumulate(res.begin(), res.end(), 0LL) < accumulate(score.begin(), score.end(), 0LL)) {
@@ -187,7 +194,7 @@ int main() {
     int loop_count = 0;
 
     tic();
-    while (toc() < 3.0 * CLOCKS_PER_SEC) {
+    while (toc() < CALC_TIME * CLOCKS_PER_SEC) {
         S = neighbor(K, best);
 
         vector<long long> res = calc(best, score, S);
