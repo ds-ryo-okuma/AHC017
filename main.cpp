@@ -2,6 +2,7 @@
 #include <vector>
 #include <set>
 #include <queue>
+#include <numeric>
 using namespace std;
 
 const int INF = 1'000'000'000;
@@ -129,8 +130,8 @@ int main() {
     }
 */
 
-    auto calc = [&](const vector<set<int>> &S) -> long long {
-        long long res = 0;
+    auto calc = [&](const vector<set<int>> &S) -> vector<long long> {
+        vector<long long> res((int)S.size());
 
         for (int d = 0; d < (int)S.size(); ++d) {
             G -= S[d];
@@ -139,7 +140,7 @@ int main() {
             auto ndist = dijkstra(s, G);
                 
             for (int g = 0; g < N; ++g) {
-                res += ndist[g] - dist[s][g];
+                res[d] += ndist[g] - dist[s][g];
             }
 
             G += S[d];
@@ -153,7 +154,7 @@ int main() {
         best[i % D].insert(i);
     }
 
-    long long best_min = calc(best);
+    vector<long long> best_min = calc(best);
 
     int initial_count = 0;
 
@@ -166,8 +167,8 @@ int main() {
             S[d].insert(i);
         }
 
-        long long res = calc(S);
-        if (res < best_min) {
+        vector<long long> res = calc(S);
+        if ( res < best_min) {
             best_min = res;
             best = S;
         }
@@ -175,14 +176,37 @@ int main() {
         ++initial_count;
     }
 
+    auto calc_diff = [&](const vector<set<int>> &S) -> vector<long long> {
+        vector<long long> res = best_min;
+
+        for (int d = 0; d < (int)S.size(); ++d) {
+            if (best[d] == S[d]) continue;
+
+            G -= S[d];
+
+            int s = rand() % N;
+            auto ndist = dijkstra(s, G);
+
+            res[d] = 0;
+
+            for (int g = 0; g < N; ++g) {
+                res[d] += ndist[g] - dist[s][g];
+            }
+
+            G += S[d];
+        }
+
+        return res;
+    };
+
     int loop_count = 0;
 
     tic();
     while (toc() < 3.0 * CLOCKS_PER_SEC) {
         vector S = neighbor(K, best);
 
-        long long res = calc(S);
-        if (res < best_min) {
+        vector<long long> res = calc_diff(S);
+        if (accumulate(res.begin(), res.end(), 0LL) < accumulate(best_min.begin(), best_min.end(), 0LL)) {
             best_min = res;
             best = S;
         }
