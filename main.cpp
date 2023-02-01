@@ -130,84 +130,69 @@ int main() {
     }
 */
 
-    auto calc = [&](const vector<set<int>> &S) -> vector<long long> {
-        vector<long long> res((int)S.size());
+    auto calc = [&](const vector<set<int>> &old_state, const vector<long long> &old_score, const vector<set<int>> &S) -> vector<long long> {
+        vector<long long> res(old_score);
 
         for (int d = 0; d < (int)S.size(); ++d) {
+            if (old_state[d] == S[d]) continue;
+
+            res[d] = 0;
+
             G -= S[d];
 
             int s = rand() % N;
             auto ndist = dijkstra(s, G);
-                
-            for (int g = 0; g < N; ++g) {
-                res[d] += ndist[g] - dist[s][g];
-            }
 
             G += S[d];
+                
+            for (int g = 0; g < N; ++g) res[d] += ndist[g] - dist[s][g];
         }
 
         return res;
     };
 
     vector best(D, set<int>());
+    vector<long long> score(D, 1'000'000'000'000'000ll);
+
+    vector S(D, set<int>());
     for (int i = 0; i < M; ++i) {
-        best[i % D].insert(i);
+        S[i % D].insert(i);
     }
 
-    vector<long long> best_min = calc(best);
+    vector<long long> res = calc(best, score, S);
+    if (accumulate(res.begin(), res.end(), 0LL) < accumulate(score.begin(), score.end(), 0LL)) {
+        best = S; score = res;
+    }
 
     int initial_count = 0;
 
     tic();
     while (toc() < CALC_TIME * CLOCKS_PER_SEC) {
-        vector S(D, set<int>());
+        S = vector(D, set<int>());
         for (int i = 0; i < M; ++i) {
             int d = rand() % D;
             while (S[d].size() >= K) d = rand() % D;
             S[d].insert(i);
         }
 
-        vector<long long> res = calc(S);
-        if ( res < best_min) {
-            best_min = res;
+        vector<long long> res = calc(best, score, S);
+        if (accumulate(res.begin(), res.end(), 0LL) < accumulate(score.begin(), score.end(), 0LL)) {
+            score = res;
             best = S;
         }
 
         ++initial_count;
     }
 
-    auto calc_diff = [&](const vector<set<int>> &S) -> vector<long long> {
-        vector<long long> res = best_min;
-
-        for (int d = 0; d < (int)S.size(); ++d) {
-            if (best[d] == S[d]) continue;
-
-            G -= S[d];
-
-            int s = rand() % N;
-            auto ndist = dijkstra(s, G);
-
-            res[d] = 0;
-
-            for (int g = 0; g < N; ++g) {
-                res[d] += ndist[g] - dist[s][g];
-            }
-
-            G += S[d];
-        }
-
-        return res;
-    };
-
     int loop_count = 0;
 
     tic();
     while (toc() < 3.0 * CLOCKS_PER_SEC) {
-        vector S = neighbor(K, best);
+        S = neighbor(K, best);
 
-        vector<long long> res = calc_diff(S);
-        if (accumulate(res.begin(), res.end(), 0LL) < accumulate(best_min.begin(), best_min.end(), 0LL)) {
-            best_min = res;
+        vector<long long> res = calc(best, score, S);
+        if (accumulate(res.begin(), res.end(), 0LL) < accumulate(score.begin(), score.end(), 0LL)) {
+            score = res;
             best = S;
         }
 
