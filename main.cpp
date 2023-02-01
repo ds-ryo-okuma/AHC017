@@ -3,6 +3,8 @@
 #include <set>
 #include <queue>
 #include <numeric>
+#include <cmath>
+#include <climits>
 using namespace std;
 
 const int INF = 1'000'000'000;
@@ -60,11 +62,22 @@ vector<int> dijkstra(const int s, const graph &G) {
 }
 
 
+unsigned int randxor() {
+    static unsigned int x = 123456789, y = 362436069, z = 521288629, w = 88675123;
+    unsigned int t;
+    t = (x ^ (x << 11)); x = y; y = z; z = w; return(w = (w ^ (w >> 19)) ^ (t ^ (t >> 8)));
+}
+
+static double rand01()
+{
+    return (randxor() + 0.5) * (1.0 / UINT_MAX);
+}
+
 vector<set<int>> make_random(int D, int M, int K) {
     vector res(D, set<int>());
     for (int i = 0; i < M; ++i) {
-        int d = rand() % D;
-        while (res[d].size() >= K) d = rand() % D;
+        int d = randxor() % D;
+        while (res[d].size() >= K) d = randxor() % D;
         res[d].insert(i);
     }
     return res;
@@ -76,18 +89,18 @@ vector<set<int>> neighbor(int K, const vector<set<int>> &S) {
 
     vector res(S);
 
-    int i = rand() % D, j = rand() % (D - 1);
+    int i = randxor() % D, j = randxor() % (D - 1);
     if (i <= j) j++;
 
     // S_i と S_j を作り直す
     set<int> nS[2];
     for (auto s : res[i]) {
-        int x = rand() % 2;
+        int x = randxor() % 2;
         if (K <= nS[x].size()) x = 1 - x;
         nS[x].insert(s);
     }
     for (auto s : res[j]) {
-        int x = rand() % 2;
+        int x = randxor() % 2;
         if (K <= nS[x].size()) x = 1 - x;
         nS[x].insert(s);
     }
@@ -95,6 +108,11 @@ vector<set<int>> neighbor(int K, const vector<set<int>> &S) {
     res[i] = nS[0], res[j] = nS[1];
 
     return res;
+}
+
+
+long long comp(const vector<long long> &A, const vector<long long> &B) {
+    return accumulate(A.begin(), A.end(), 0ll) - accumulate(B.begin(), B.end(), 0LL);
 }
 
 
@@ -119,9 +137,9 @@ int main() {
         --U[i], --V[i];
     }
 
-    auto base_ms = 0;
+    clock_t base_ms = 0;
     auto tic = [&base_ms]() { base_ms = clock(); };
-    auto toc = [&base_ms]() { return clock() - base_ms; };
+    auto toc = [&base_ms]() -> clock_t { return clock() - base_ms; };
 
     graph G(N);
     for (int i = 0; i < M; ++i) {
@@ -152,7 +170,7 @@ int main() {
 
             G -= S[d];
 
-            int s = rand() % N;
+            int s = randxor() % N;
             auto ndist = dijkstra(s, G);
 
             G += S[d];
@@ -183,7 +201,8 @@ int main() {
         S = make_random(D, M, K);
 
         vector<long long> res = calc(best, score, S);
-        if (accumulate(res.begin(), res.end(), 0LL) < accumulate(score.begin(), score.end(), 0LL)) {
+        // if (accumulate(res.begin(), res.end(), 0LL) < accumulate(score.begin(), score.end(), 0LL)) {
+        if (comp(res, score)) {
             score = res;
             best = S;
         }
@@ -193,12 +212,26 @@ int main() {
 
     int loop_count = 0;
 
+    const static double START_TEMP = 1'000'000; // 開始時の温度
+    const static double END_TEMP   =  1'000;  // 終了時の温度
+    const static double END_TIME   =  CALC_TIME * CLOCKS_PER_SEC; // 終了時間（秒）
+
     tic();
-    while (toc() < CALC_TIME * CLOCKS_PER_SEC) {
+    
+    clock_t cur = 0;
+    while ((cur = toc()) < CALC_TIME * CLOCKS_PER_SEC) {
+        const double progressRatio = cur / END_TIME;
+        const double temp = START_TEMP + (END_TEMP - START_TEMP) * progressRatio;
+
         S = neighbor(K, best);
 
         vector<long long> res = calc(best, score, S);
-        if (accumulate(res.begin(), res.end(), 0LL) < accumulate(score.begin(), score.end(), 0LL)) {
+
+        long long diff = comp(score, res);
+        const double probability = exp(diff / temp);
+        bool FORCE_NEXT = probability > rand01();
+
+        if (FORCE_NEXT) {
             score = res;
             best = S;
         }
