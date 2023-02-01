@@ -8,8 +8,8 @@
 using namespace std;
 
 const int INF = 1'000'000'000;
-const double INITIAL_TIME = 2.0;
-const double CALC_TIME = 3.5;
+const double INITIAL_TIME = 1.0;
+const double CALC_TIME = 4.5;
 
 vector<int> U, V, W;
 
@@ -160,11 +160,19 @@ int main() {
     }
 */
 
-    auto calc = [&](const vector<set<int>> &old_state, const vector<long long> &old_score, const vector<set<int>> &S) -> vector<long long> {
-        vector<long long> res(old_score);
+    auto calc = [&](
+        const vector<set<int>> &S,
+        const vector<set<int>> &old_state = vector<set<int>>(),
+        const vector<long long> &old_score = vector<long long>()
+        ) -> vector<long long> {
 
-        for (int d = 0; d < (int)S.size(); ++d) {
-            if (old_state[d] == S[d]) continue;
+        bool initial = old_state.empty();
+        vector<long long> res;
+        if (initial) res.resize(D);
+        else res = old_score;
+
+        for (int d = 0; d < D; ++d) {
+            if (!initial && old_state[d] == S[d]) continue;
 
             res[d] = 0;
 
@@ -181,6 +189,7 @@ int main() {
         return res;
     };
 
+
     vector best(D, set<int>());
     vector<long long> score(D, 1'000'000'000'000'000ll);
 
@@ -189,20 +198,16 @@ int main() {
         S[i % D].insert(i);
     }
 
-    vector<long long> res = calc(best, score, S);
-    if (accumulate(res.begin(), res.end(), 0LL) < accumulate(score.begin(), score.end(), 0LL)) {
-        best = S; score = res;
-    }
+    vector<long long> res = calc(S);
+    best = S; score = res;
 
     int initial_count = 0;
 
-    tic();
     while (toc() < INITIAL_TIME * CLOCKS_PER_SEC) {
         S = make_random(D, M, K);
 
-        vector<long long> res = calc(best, score, S);
-        // if (accumulate(res.begin(), res.end(), 0LL) < accumulate(score.begin(), score.end(), 0LL)) {
-        if (comp(res, score)) {
+        res = calc(S);
+        if (comp(res, score) < 0) {
             score = res;
             best = S;
         }
@@ -213,7 +218,7 @@ int main() {
     int loop_count = 0;
 
     const static double START_TEMP = 1'000'000; // 開始時の温度
-    const static double END_TEMP   =  1'000;  // 終了時の温度
+    const static double END_TEMP   =  100;  // 終了時の温度
     const static double END_TIME   =  CALC_TIME * CLOCKS_PER_SEC; // 終了時間（秒）
 
     tic();
@@ -225,7 +230,7 @@ int main() {
 
         S = neighbor(K, best);
 
-        vector<long long> res = calc(best, score, S);
+        res = calc(S, best, score);
 
         long long diff = comp(score, res);
         const double probability = exp(diff / temp);
