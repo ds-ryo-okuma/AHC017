@@ -4,74 +4,18 @@
 #include <queue>
 #include <numeric>
 #include <cmath>
-#include <climits>
+
+#include "util.hpp"
+#include "graph.hpp"
 using namespace std;
 
-const int INF = 1'000'000'000;
-const double INITIAL_TIME = 1.0;
-const double CALC_TIME = 4.5;
 
-vector<int> U, V, W;
+const double INITIAL_TIME = 2.0;
+const double CALC_TIME = 3.5;
 
-struct edge {
-    int to, cost;
-    edge(int to, int cost) : to(to), cost(cost) {}
-};
-
-using graph = vector<set<int>>;
-graph& operator +=(graph &self, const set<int> &S) {
-    for (auto i : S) {
-        int u = U[i], v = V[i];
-        self[u].insert(i);
-        self[v].insert(i);
-    }
-    return self;
-};
-graph& operator -=(graph &self, const set<int> &S) {
-    for (auto i : S) {
-        int u = U[i], v = V[i];
-        self[u].erase(i);
-        self[v].erase(i);
-    }
-    return self;
-};
-
-vector<int> dijkstra(const int s, const graph &G) {
-    int N = G.size();
-
-    vector dist(N, INF);
-    dist[s] = 0;
-
-    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> q;
-    q.push({0, s});
-
-    while (q.size()) {
-        auto [d, v] = q.top(); q.pop();
-        if (dist[v] < d) continue;
-        for (auto i : G[v]) {
-            int to = U[i] == v ? V[i] : U[i];
-            int cost = W[i];
-            if (dist[v] + cost < dist[to]) {
-                dist[to] = dist[v] + cost;
-                q.push({dist[to], to});
-            }
-        }
-    }
-
-    return dist;
-}
-
-
-unsigned int randxor() {
-    static unsigned int x = 123456789, y = 362436069, z = 521288629, w = 88675123;
-    unsigned int t;
-    t = (x ^ (x << 11)); x = y; y = z; z = w; return(w = (w ^ (w >> 19)) ^ (t ^ (t >> 8)));
-}
-
-static double rand01()
-{
-    return (randxor() + 0.5) * (1.0 / UINT_MAX);
-}
+const static double START_TEMP = 1'000'000; // 開始時の温度
+const static double END_TEMP   =  100;  // 終了時の温度
+const static double END_TIME   =  CALC_TIME * CLOCKS_PER_SEC; // 終了時間（秒）
 
 vector<set<int>> make_random(int D, int M, int K) {
     vector res(D, set<int>());
@@ -111,19 +55,44 @@ vector<set<int>> neighbor(int K, const vector<set<int>> &S) {
 }
 
 
-long long comp(const vector<long long> &A, const vector<long long> &B) {
-    return accumulate(A.begin(), A.end(), 0ll) - accumulate(B.begin(), B.end(), 0LL);
+vector<long long> calc_score (const vector<set<int>> &S, graph &G, vector<vector<int>> &dist) {
+    int D = S.size();
+    vector<long long> res(S.size());
+
+    for (int d = 0; d < D; ++d) {
+        G -= S[d];
+
+        int s = randxor() % G.V;
+        auto ndist = G.dijkstra(s);
+
+        G += S[d];
+            
+        for (int g = 0; g < G.V; ++g) res[d] += ndist[g] - dist[s][g];
+    }
+
+    return res;
 }
 
 
-void output (int M, const vector<set<int>> &S) {
-    vector<int> R(M);
-    for (int d = 0; d < (int)S.size(); ++d) {
-        for (auto &i : S[d]) {
-            R[i] = d;
-        }
+vector<long long> calc_score (const vector<set<int>> &next, graph &G, vector<vector<int>> &dist, const vector<set<int>> &now, const vector<long long> &score) {
+    int D = next.size();
+    vector<long long> res(score);
+
+    for (int d = 0; d < D; ++d) {
+        if (next[d] == now[d]) continue;
+
+        G -= next[d];
+
+        int s = randxor() % G.V;
+        auto ndist = G.dijkstra(s);
+
+        G += next[d];
+            
+        res[d] = 0;
+        for (int g = 0; g < G.V; ++g) res[d] += ndist[g] - dist[s][g];
     }
-    for (auto &r : R) cout << r + 1 << " ";
+
+    return res;
 }
 
 
@@ -131,106 +100,53 @@ int main() {
     int N, M, D, K;
     cin >> N >> M >> D >> K;
 
-    U.resize(M), V.resize(M), W.resize(M);
-    for (int i = 0; i < M; ++i) {
-        cin >> U[i] >> V[i] >> W[i];
-        --U[i], --V[i];
-    }
+    graph all_path(N, M);
 
-    clock_t base_ms = 0;
-    auto tic = [&base_ms]() { base_ms = clock(); };
-    auto toc = [&base_ms]() -> clock_t { return clock() - base_ms; };
-
-    graph G(N);
     for (int i = 0; i < M; ++i) {
-        int u = U[i], v = V[i], w = W[i];
-        G[u].insert(i);
-        G[v].insert(i);
+        int u, v, w;
+        cin >> u >> v >> w;
+        all_path.add_edge(--u, --v, w);
     }
 
     vector dist(N, vector<int>());
     for (int i = 0; i < N; ++i) {
-        dist[i] = dijkstra(i, G);
+        dist[i] = all_path.dijkstra(i);
     }
 
-/*
-    vector<int> X(N), Y(N);
-    for (int i = 0; i < N; ++i) {
-        cin >> X[i] >> Y[i];
-    }
-*/
 
-    auto calc = [&](
-        const vector<set<int>> &S,
-        const vector<set<int>> &old_state = vector<set<int>>(),
-        const vector<long long> &old_score = vector<long long>()
-        ) -> vector<long long> {
-
-        bool initial = old_state.empty();
-        vector<long long> res;
-        if (initial) res.resize(D);
-        else res = old_score;
-
-        for (int d = 0; d < D; ++d) {
-            if (!initial && old_state[d] == S[d]) continue;
-
-            res[d] = 0;
-
-            G -= S[d];
-
-            int s = randxor() % N;
-            auto ndist = dijkstra(s, G);
-
-            G += S[d];
-                
-            for (int g = 0; g < N; ++g) res[d] += ndist[g] - dist[s][g];
-        }
-
-        return res;
-    };
-
-
-    vector best(D, set<int>());
-    vector<long long> score(D, 1'000'000'000'000'000ll);
-
-    vector S(D, set<int>());
+    vector now(D, set<int>());
     for (int i = 0; i < M; ++i) {
-        S[i % D].insert(i);
+        now[i % D].insert(i);
     }
 
-    vector<long long> res = calc(S);
-    best = S; score = res;
+    vector<long long> score = calc_score(now, all_path, dist);
 
     int initial_count = 0;
-
+    tic();
     while (toc() < INITIAL_TIME * CLOCKS_PER_SEC) {
-        S = make_random(D, M, K);
+        auto next = make_random(D, M, K);
 
-        res = calc(S);
+        auto res = calc_score(next, all_path, dist);
         if (comp(res, score) < 0) {
             score = res;
-            best = S;
+            now = next;
         }
 
         ++initial_count;
     }
 
+
     int loop_count = 0;
 
-    const static double START_TEMP = 1'000'000; // 開始時の温度
-    const static double END_TEMP   =  100;  // 終了時の温度
-    const static double END_TIME   =  CALC_TIME * CLOCKS_PER_SEC; // 終了時間（秒）
-
-    tic();
-    
     clock_t cur = 0;
+    tic();
     while ((cur = toc()) < CALC_TIME * CLOCKS_PER_SEC) {
         const double progressRatio = cur / END_TIME;
         const double temp = START_TEMP + (END_TEMP - START_TEMP) * progressRatio;
 
-        S = neighbor(K, best);
+        auto next = neighbor(K, now);
 
-        res = calc(S, best, score);
+        auto res = calc_score(next, all_path, dist, now, score);
 
         long long diff = comp(score, res);
         const double probability = exp(diff / temp);
@@ -238,13 +154,13 @@ int main() {
 
         if (FORCE_NEXT) {
             score = res;
-            best = S;
+            now = next;
         }
 
         ++loop_count;
     }
 
-    output(M, best);
+    output(M, now);
     cerr << "INITIAL_COUNT = " << initial_count << endl;
     cerr << "LOOP_COUNT = " << loop_count << endl;
 
