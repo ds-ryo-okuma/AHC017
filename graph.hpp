@@ -1,6 +1,6 @@
 #include <vector>
 #include <set>
-#include<queue>
+#include <queue>
 
 const int INF = 1'000'000'000;
 
@@ -47,9 +47,9 @@ graph& graph::operator -=(const std::set<int> &S) {
 }
 
 void graph::add_edge (int from, int to, int cost) {
+    G[from].emplace(edges.size());
+    G[to].emplace(edges.size());
     edges.emplace_back(from, to, cost);
-    G[from].emplace(to);
-    G[to].emplace(from);
 }
 
 std::vector<int> graph::dijkstra(const int s) const {
