@@ -18,8 +18,9 @@ clock_t base_ms = 0;
 void tic() { base_ms = clock(); };
 clock_t toc() { return clock() - base_ms; };
 
-long long comp(const std::vector<long long> &A, const std::vector<long long> &B) {
-    return accumulate(A.begin(), A.end(), 0ll) - accumulate(B.begin(), B.end(), 0ll);
+template <class T>
+T comp(const std::vector<T> &A, const std::vector<T> &B) {
+    return accumulate(A.begin(), A.end(), 0.0) - accumulate(B.begin(), B.end(), 0.0);
 }
 
 void output (int M, const std::vector<std::set<int>> &S) {

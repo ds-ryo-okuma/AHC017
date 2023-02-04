@@ -23,8 +23,9 @@ clock_t base_ms = 0;
 void tic() { base_ms = clock(); };
 clock_t toc() { return clock() - base_ms; };
 
-long long comp(const std::vector<long long> &A, const std::vector<long long> &B) {
-    return accumulate(A.begin(), A.end(), 0ll) - accumulate(B.begin(), B.end(), 0ll);
+template <class T>
+T comp(const std::vector<T> &A, const std::vector<T> &B) {
+    return accumulate(A.begin(), A.end(), 0.0) - accumulate(B.begin(), B.end(), 0.0);
 }
 
 void output (int M, const std::vector<std::set<int>> &S) {
@@ -116,10 +117,16 @@ using namespace std;
 
 const double INITIAL_TIME = 2.0;
 const double CALC_TIME = 3.5;
+const int CALC_NUM  = 1;
 
 const static double START_TEMP = 1'000'000; // 開始時の温度
 const static double END_TEMP   =  100;  // 終了時の温度
 const static double END_TIME   =  CALC_TIME * CLOCKS_PER_SEC; // 終了時間（秒）
+
+using state = set<int>;
+using states = vector<state>;
+
+using score_type = vector<double>;
 
 vector<set<int>> make_random(int D, int M, int K) {
     vector res(D, set<int>());
@@ -159,41 +166,50 @@ vector<set<int>> neighbor(int K, const vector<set<int>> &S) {
 }
 
 
-vector<long long> calc_score (const vector<set<int>> &S, graph &G, vector<vector<int>> &dist) {
+score_type calc_score (const vector<set<int>> &S, graph &G, vector<vector<int>> &dist) {
     int D = S.size();
-    vector<long long> res(S.size());
+    score_type res(S.size());
 
     for (int d = 0; d < D; ++d) {
         G -= S[d];
 
-        int s = randxor() % G.V;
-        auto ndist = G.dijkstra(s);
+        vector used(G.V, false);
+        for (int x = 0; x < CALC_NUM; ++x) {
+            int s = randxor() % G.V;
+            while (used[s]) s = randxor() % G.V;
+            used[s] = true;
+            auto ndist = G.dijkstra(s);
+
+            for (int g = 0; g < G.V; ++g) res[d] += (ndist[g] - dist[s][g]) / G.V;
+        }
 
         G += S[d];
-            
-        for (int g = 0; g < G.V; ++g) res[d] += ndist[g] - dist[s][g];
     }
 
     return res;
 }
 
 
-vector<long long> calc_score (const vector<set<int>> &next, graph &G, vector<vector<int>> &dist, const vector<set<int>> &now, const vector<long long> &score) {
+score_type calc_score (const vector<set<int>> &next, graph &G, vector<vector<int>> &dist, const vector<set<int>> &now, const score_type &score) {
     int D = next.size();
-    vector<long long> res(score);
+    score_type res(score);
 
     for (int d = 0; d < D; ++d) {
         if (next[d] == now[d]) continue;
 
         G -= next[d];
 
-        int s = randxor() % G.V;
-        auto ndist = G.dijkstra(s);
+        vector used(G.V, false);
+        for (int x = 0; x < CALC_NUM; ++x) {
+            int s = randxor() % G.V;
+            while (used[s]) s = randxor() % G.V;
+            used[s] = true;
+            auto ndist = G.dijkstra(s);
+
+            for (int g = 0; g < G.V; ++g) res[d] += (ndist[g] - dist[s][g]) / G.V;
+        }
 
         G += next[d];
-            
-        res[d] = 0;
-        for (int g = 0; g < G.V; ++g) res[d] += ndist[g] - dist[s][g];
     }
 
     return res;
@@ -223,7 +239,7 @@ int main() {
         now[i % D].insert(i);
     }
 
-    vector<long long> score = calc_score(now, all_path, dist);
+    score_type score = calc_score(now, all_path, dist);
 
     int initial_count = 0;
     tic();
